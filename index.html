@@ -3,32 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Padel Pro - Backup Edition</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Padel Pro - ELO Evolution</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2ecc71">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; padding: 15px; margin: 0; color: #34495e; }
         .container { max-width: 900px; margin: auto; }
         h1, h2 { text-align: center; color: #1a2a3a; margin-bottom: 15px; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         select, input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        button { width: 100%; padding: 12px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+        button:hover { opacity: 0.9; }
         .btn-blue { background: #3498db; }
         .btn-orange { background: #f39c12; }
         .btn-danger { background: #e74c3c; width: auto; padding: 8px 15px; font-size: 13px; }
         .player-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: center; font-size: 14px; }
-        .chart-container { position: relative; height: 300px; width: 100%; }
+        th { background-color: #f8f9fa; }
+        .chart-container { position: relative; height: 350px; width: 100%; }
         .badge-win { background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+        .elo-tag { font-weight: bold; color: #2c3e50; background: #ecf0f1; padding: 3px 8px; border-radius: 12px; font-size: 0.9em;}
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🎾 Padel Pro Tracker</h1>
+    <h1>🎾 Padel Pro <span style="color:#3498db">Evolution</span></h1>
 
     <div class="card">
         <h2>👥 Jugadores</h2>
@@ -39,119 +42,127 @@
         <div id="players-list"></div>
     </div>
 
-    <div class="card">
+    <div class="card" style="background: #fdfffe; border-left: 4px solid #2ecc71;">
         <h2>Nuevo Partido</h2>
         <div class="grid-inputs">
             <div>
-                <label>Pareja 1</label>
+                <label style="font-weight: bold; color: #27ae60;">Pareja 1 (Ganadores?)</label>
                 <select id="p1a" class="player-select"></select>
                 <select id="p1b" class="player-select"></select>
-                <input type="number" id="score1" value="0">
+                <input type="number" id="score1" value="0" placeholder="Sets ganados">
             </div>
             <div>
-                <label>Pareja 2</label>
+                <label style="font-weight: bold; color: #c0392b;">Pareja 2</label>
                 <select id="p2a" class="player-select"></select>
                 <select id="p2b" class="player-select"></select>
-                <input type="number" id="score2" value="0">
+                <input type="number" id="score2" value="0" placeholder="Sets ganados">
             </div>
         </div>
-        <button onclick="agregarPartido()">Guardar Resultado</button>
+        <button onclick="agregarPartido()">Registrar Resultado</button>
     </div>
 
     <div class="card">
-        <h2>💾 Copia de Seguridad</h2>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <button class="btn-orange" onclick="exportarDatos()">Exportar a Archivo</button>
-            <div style="display: flex; flex-direction: column;">
-                <input type="file" id="import-file" style="font-size: 11px; padding: 5px;">
-                <button class="btn-blue" onclick="importarDatos()" style="padding: 5px; font-size: 12px;">Importar Archivo</button>
-            </div>
-        </div>
+        <h2>📈 Evolución de Rating ELO</h2>
+        <p style="text-align: center; font-size: 0.9em; color: #7f8c8d;">Historial completo de todos los partidos</p>
+        <div class="chart-container"><canvas id="eloChart"></canvas></div>
     </div>
 
     <div class="card">
-        <h2>Temporada</h2>
-        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-            <input type="date" id="date-start">
-            <input type="date" id="date-end">
-            <button class="btn-blue" onclick="actualizarInterfaz()" style="width:auto;">Filtrar</button>
-        </div>
-        <div class="chart-container"><canvas id="myChart"></canvas></div>
-    </div>
-
-    <div class="card">
-        <h2>Clasificación Individual</h2>
+        <h2>🏆 Clasificación Actual (ELO)</h2>
+        <div style="overflow-x: auto;">
         <table id="stats-table">
-            <thead><tr><th>Jugador</th><th>PJ</th><th>V</th><th>%</th></tr></thead>
+            <thead><tr><th>Rank</th><th>Jugador</th><th>ELO</th><th>PJ</th><th>% Victorias</th></tr></thead>
             <tbody id="stats-body"></tbody>
         </table>
+        </div>
     </div>
 
     <div class="card">
-        <h2>Ranking de Parejas</h2>
+        <h2>Ranking de Parejas (Temporada)</h2>
+         <div style="display: flex; gap: 10px; margin-bottom: 10px; justify-content: center; background: #f8f9fa; padding: 10px; border-radius: 8px;">
+            <input type="date" id="date-start" style="width: auto;">
+            <span style="align-self: center;">a</span>
+            <input type="date" id="date-end" style="width: auto;">
+            <button class="btn-blue" onclick="actualizarInterfaz()" style="width:auto; margin-top:0;">Filtrar Tablas</button>
+        </div>
+        <div style="overflow-x: auto;">
         <table id="teams-table">
             <thead><tr><th>Pareja</th><th>PJ</th><th>V</th><th>%</th></tr></thead>
             <tbody id="teams-body"></tbody>
         </table>
+        </div>
+    </div>
+
+     <div class="card">
+        <h2>💾 Gestión de Datos</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+            <button class="btn-orange" onclick="exportarDatos()">⬇️ Exportar Backup</button>
+            <div style="display: flex; flex-direction: column;">
+                 <label for="import-file" class="btn-blue" style="text-align:center; cursor:pointer; padding: 12px; margin-top: 10px; border-radius: 6px; font-weight: bold;">⬆️ Importar Backup</label>
+                <input type="file" id="import-file" style="display: none;" onchange="importarDatos()">
+            </div>
+        </div>
+        <button class="btn-danger" style="width: 100%; opacity: 0.7;" onclick="borrarTodo()">⚠️ Reiniciar Todo el Sistema</button>
     </div>
 
     <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h2>Historial</h2>
-            <button class="btn-danger" onclick="borrarTodo()">Reiniciar Todo</button>
-        </div>
+        <h2>Historial Reciente</h2>
+        <div style="overflow-x: auto;">
         <table id="history-table"><tbody id="history-body"></tbody></table>
+        </div>
     </div>
 </div>
 
 <script>
-    let jugadores = JSON.parse(localStorage.getItem('padelPlayers')) || ["Ana", "Betico", "Carlos", "Diana", "Elena"];
+    let jugadores = JSON.parse(localStorage.getItem('padelPlayers')) || ["Ana", "Betico", "Carlos", "Diana"];
     let historial = JSON.parse(localStorage.getItem('padelMatches')) || [];
     let chartInstance = null;
+    const ELO_INICIAL = 1000;
+    const K_FACTOR = 32;
+
+    // --- LÓGICA ELO ---
+    function calcularCambioElo(ratingEquipo, ratingOponente, gano) {
+        const expectativa = 1 / (1 + Math.pow(10, (ratingOponente - ratingEquipo) / 400));
+        // Si empatan en sets (ej 1-1 en un partido inconcluso), consideramos empate (0.5)
+        let resultado = gano ? 1 : 0;
+        return Math.round(K_FACTOR * (resultado - expectativa));
+    }
+    
+    // Colores para el gráfico
+    const chartColors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#34495e', '#16a085', '#27ae60', '#2980b9', '#8e44ad', '#d35400', '#c0392b'];
+    function getColor(index) { return chartColors[index % chartColors.length]; }
 
     // --- FUNCIONES DE BACKUP ---
-    
     function exportarDatos() {
-        const data = {
-            jugadores: jugadores,
-            historial: historial
-        };
+        const data = { jugadores, historial };
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "padel_backup_" + new Date().toLocaleDateString() + ".json");
-        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.setAttribute("download", "padel_elo_evolution_" + new Date().toISOString().slice(0,10) + ".json");
+        document.body.appendChild(downloadAnchorNode); // Required for Firefox
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
     }
 
     function importarDatos() {
         const fileInput = document.getElementById('import-file');
-        if (!fileInput.files[0]) return alert("Por favor, selecciona un archivo primero.");
-
+        if (!fileInput.files[0]) return;
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = (e) => {
             try {
-                const importedData = JSON.parse(e.target.result);
-                if (importedData.jugadores && importedData.historial) {
-                    jugadores = importedData.jugadores;
-                    historial = importedData.historial;
+                const data = JSON.parse(e.target.result);
+                if(data.jugadores && data.historial){
+                    jugadores = data.jugadores; historial = data.historial;
                     localStorage.setItem('padelPlayers', JSON.stringify(jugadores));
                     localStorage.setItem('padelMatches', JSON.stringify(historial));
-                    alert("¡Datos restaurados con éxito!");
-                    location.reload(); // Recargamos para aplicar cambios
-                } else {
-                    alert("El archivo no tiene el formato correcto.");
-                }
-            } catch (err) {
-                alert("Error al leer el archivo JSON.");
-            }
+                    location.reload();
+                } else { alert("Formato de archivo incorrecto"); }
+            } catch(err) { alert("Error al leer el archivo"); }
         };
         reader.readAsText(fileInput.files[0]);
     }
 
-    // --- RESTO DE LÓGICA (Mantenida) ---
-
+    // --- GESTIÓN DE INTERFAZ ---
     const hoy = new Date();
     document.getElementById('date-start').value = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
     document.getElementById('date-end').value = hoy.toISOString().split('T')[0];
@@ -160,9 +171,18 @@
         const list = document.getElementById('players-list');
         list.innerHTML = '';
         jugadores.forEach((n, i) => {
-            list.innerHTML += `<div class="player-item"><span>${n}</span><button class="btn-danger btn-small" onclick="eliminarJugador(${i})">✕</button></div>`;
+            list.innerHTML += `<div class="player-item"><span>${n}</span><button class="btn-danger" style="padding: 4px 10px;" onclick="eliminarJugador(${i})">✕</button></div>`;
         });
         actualizarSelectores();
+    }
+
+    function actualizarSelectores() {
+        document.querySelectorAll('.player-select').forEach(s => {
+            const currentVal = s.value;
+            s.innerHTML = '';
+            jugadores.forEach(j => s.add(new Option(j, j)));
+            if (jugadores.includes(currentVal)) s.value = currentVal;
+        });
     }
 
     function agregarJugador() {
@@ -172,76 +192,181 @@
             localStorage.setItem('padelPlayers', JSON.stringify(jugadores));
             renderJugadores();
             actualizarInterfaz();
+            document.getElementById('new-player-name').value = '';
         }
     }
 
     function eliminarJugador(i) {
-        if(confirm("¿Eliminar?")) { jugadores.splice(i, 1); localStorage.setItem('padelPlayers', JSON.stringify(jugadores)); renderJugadores(); actualizarInterfaz(); }
-    }
-
-    function actualizarSelectores() {
-        document.querySelectorAll('.player-select').forEach(s => {
-            const val = s.value;
-            s.innerHTML = '';
-            jugadores.forEach(j => s.add(new Option(j, j)));
-            s.value = val;
-        });
+        if(confirm("¿Eliminar jugador? Su historial de partidos permanecerá pero no aparecerá en rankings futuros.")) { 
+            jugadores.splice(i, 1); 
+            localStorage.setItem('padelPlayers', JSON.stringify(jugadores)); 
+            renderJugadores(); 
+            actualizarInterfaz(); 
+        }
     }
 
     function agregarPartido() {
         const p1 = [document.getElementById('p1a').value, document.getElementById('p1b').value];
         const p2 = [document.getElementById('p2a').value, document.getElementById('p2b').value];
-        const s1 = parseInt(document.getElementById('score1').value);
-        const s2 = parseInt(document.getElementById('score2').value);
-        if (new Set([...p1, ...p2]).size !== 4) return alert("Jugadores repetidos");
+        const s1 = parseInt(document.getElementById('score1').value) || 0;
+        const s2 = parseInt(document.getElementById('score2').value) || 0;
+        
+        if (new Set([...p1, ...p2]).size !== 4) return alert("Error: Jugadores repetidos en el partido.");
+        if (s1 === 0 && s2 === 0) return alert("Introduce el resultado en sets.");
+
         historial.unshift({ timestamp: new Date().toISOString(), p1, p2, s1, s2 });
         localStorage.setItem('padelMatches', JSON.stringify(historial));
         actualizarInterfaz();
+        // Reset scores
+        document.getElementById('score1').value = 0; document.getElementById('score2').value = 0;
     }
 
     function actualizarInterfaz() {
-        const start = new Date(document.getElementById('date-start').value);
-        const end = new Date(document.getElementById('date-end').value);
+        const startStr = document.getElementById('date-start').value;
+        const endStr = document.getElementById('date-end').value;
+        const start = startStr ? new Date(startStr) : new Date(0);
+        const end = endStr ? new Date(endStr) : new Date();
         end.setHours(23, 59, 59);
-        const filtrado = historial.filter(p => { const f = new Date(p.timestamp); return f >= start && f <= end; });
-        
-        const ind = {}; const par = {};
-        jugadores.forEach(j => ind[j] = { v: 0, p: 0 });
 
-        filtrado.forEach(p => {
-            [...p.p1, ...p.p2].forEach(j => { if(ind[j]) ind[j].p++; });
-            const t1 = p.p1.sort().join(" & "); const t2 = p.p2.sort().join(" & ");
-            if (!par[t1]) par[t1] = { v: 0, p: 0 }; if (!par[t2]) par[t2] = { v: 0, p: 0 };
-            par[t1].p++; par[t2].p++;
-            if (p.s1 > p.s2) { if(ind[p.p1[0]]) ind[p.p1[0]].v++; if(ind[p.p1[1]]) ind[p.p1[1]].v++; par[t1].v++; }
-            else { if(ind[p.p2[0]]) ind[p.p2[0]].v++; if(ind[p.p2[1]]) ind[p.p2[1]].v++; par[t2].v++; }
+        const statsInd = {};
+        const statsPar = {};
+        // Estructura para el gráfico de líneas: { "JugadorA": [{x:1, y:1000}, {x:5, y:1020}], ... }
+        const eloHistoryDatasets = {}; 
+
+        // Inicializar stats y datasets con punto de partida (partido 0)
+        jugadores.forEach(j => {
+            statsInd[j] = { elo: ELO_INICIAL, v: 0, p: 0 };
+            eloHistoryDatasets[j] = [{x: 0, y: ELO_INICIAL}]; 
         });
 
-        // Tablas
+        const historialCronologico = [...historial].reverse();
+        
+        historialCronologico.forEach((m, index) => {
+            // Asegurar existencia en stats (para jugadores borrados que vuelven a aparecer en historial viejo)
+            [...m.p1, ...m.p2].forEach(j => {
+                 if(!statsInd[j]) statsInd[j] = { elo: ELO_INICIAL, v: 0, p: 0 };
+                 if(!eloHistoryDatasets[j]) eloHistoryDatasets[j] = [{x: 0, y: ELO_INICIAL}];
+            });
+
+            // 1. CÁLCULO ELO (Siempre se calcula todo el historial)
+            const eloPromT1 = (statsInd[m.p1[0]].elo + statsInd[m.p1[1]].elo) / 2;
+            const eloPromT2 = (statsInd[m.p2[0]].elo + statsInd[m.p2[1]].elo) / 2;
+            
+            let diff = 0;
+            if (m.s1 !== m.s2) {
+                 diff = calcularCambioElo(eloPromT1, eloPromT2, m.s1 > m.s2);
+            }
+
+            // Aplicar y guardar historia
+            [...m.p1, ...m.p2].forEach(j => {
+                 if (m.s1 !== m.s2) {
+                    if (m.p1.includes(j)) statsInd[j].elo += diff;
+                    else statsInd[j].elo -= diff;
+                 }
+                 // Guardamos el punto en el gráfico: X = número de partido (index+1), Y = nuevo Elo
+                 eloHistoryDatasets[j].push({x: index + 1, y: statsInd[j].elo});
+            });
+
+            // 2. FILTRADO PARA TABLAS DE ESTADÍSTICAS (PJ, V%)
+            const fechaM = new Date(m.timestamp);
+            if (fechaM >= start && fechaM <= end) {
+                m.p1.forEach(j => statsInd[j].p++);
+                m.p2.forEach(j => statsInd[j].p++);
+                
+                const t1_key = m.p1.sort().join(" & ");
+                const t2_key = m.p2.sort().join(" & ");
+                if (!statsPar[t1_key]) statsPar[t1_key] = { v: 0, p: 0 };
+                if (!statsPar[t2_key]) statsPar[t2_key] = { v: 0, p: 0 };
+                statsPar[t1_key].p++; statsPar[t2_key].p++;
+
+                if (m.s1 > m.s2) {
+                    statsInd[m.p1[0]].v++; statsInd[m.p1[1]].v++; statsPar[t1_key].v++;
+                } else if (m.s2 > m.s1) {
+                    statsInd[m.p2[0]].v++; statsInd[m.p2[1]].v++; statsPar[t2_key].v++;
+                }
+            }
+        });
+
+        // RENDERIZAR TABLAS
         const sBody = document.getElementById('stats-body'); sBody.innerHTML = '';
-        Object.entries(ind).sort((a,b)=>b[1].v - a[1].v).forEach(([n, s]) => {
-            sBody.innerHTML += `<tr><td>${n}</td><td>${s.p}</td><td>${s.v}</td><td>${s.p>0?Math.round((s.v/s.p)*100):0}%</td></tr>`;
+        Object.entries(statsInd)
+            .filter(([n]) => jugadores.includes(n)) // Solo mostrar jugadores activos
+            .sort((a,b)=>b[1].elo - a[1].elo)
+            .forEach(([n, s], i) => {
+            sBody.innerHTML += `<tr>
+                <td>${i+1}</td>
+                <td style="font-weight:600">${n}</td>
+                <td><span class="elo-tag" style="background:${getColor(jugadores.indexOf(n))}20; color:${getColor(jugadores.indexOf(n))}">${s.elo}</span></td>
+                <td>${s.p}</td>
+                <td>${s.p>0?Math.round((s.v/s.p)*100):0}%</td>
+            </tr>`;
         });
 
         const tBody = document.getElementById('teams-body'); tBody.innerHTML = '';
-        Object.entries(par).sort((a,b)=>b[1].v - a[1].v).forEach(([p, s]) => {
+        Object.entries(statsPar).sort((a,b)=>b[1].v - a[1].v).forEach(([p, s]) => {
             tBody.innerHTML += `<tr><td>${p}</td><td>${s.p}</td><td>${s.v}</td><td><span class="badge-win">${Math.round((s.v/s.p)*100)}%</span></td></tr>`;
         });
 
         const hBody = document.getElementById('history-body'); hBody.innerHTML = '';
-        historial.slice(0, 10).forEach(p => { hBody.innerHTML += `<tr><td>${new Date(p.timestamp).toLocaleDateString()}</td><td>${p.p1.join("/")}</td><td>${p.s1}-${p.s2}</td><td>${p.p2.join("/")}</td></tr>`; });
+        historial.slice(0, 15).forEach(p => { 
+            hBody.innerHTML += `<tr><td style="font-size:0.9em; color:#7f8c8d">${new Date(p.timestamp).toLocaleDateString()}</td><td>${p.p1.join("/")}</td><td style="font-weight:bold; white-space:nowrap;">${p.s1} - ${p.s2}</td><td>${p.p2.join("/")}</td></tr>`; 
+        });
 
-        // Gráfico
-        const ctx = document.getElementById('myChart').getContext('2d');
+        // --- RENDERIZAR GRÁFICO DE LÍNEAS ---
+        const ctx = document.getElementById('eloChart').getContext('2d');
         if (chartInstance) chartInstance.destroy();
-        chartInstance = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(ind), datasets: [{ label: 'Victorias', data: Object.values(ind).map(s=>s.v), backgroundColor: '#2ecc71' }, { label: 'Partidos', data: Object.values(ind).map(s=>s.p), backgroundColor: '#3498db' }] }, options: { responsive: true, maintainAspectRatio: false } });
+
+        const datasets = jugadores.map((jugador, i) => ({
+            label: jugador,
+            data: eloHistoryDatasets[jugador],
+            borderColor: getColor(i),
+            backgroundColor: getColor(i),
+            borderWidth: 2,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            fill: false,
+            tension: 0.1 // Un poco de curva para que se vea mejor
+        }));
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: { datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index', // Muestra el estado de todos los jugadores en ese partido
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        type: 'linear', // Eje X numérico (secuencia de partidos)
+                        title: { display: true, text: 'Secuencia de Partidos Jugados' },
+                        ticks: { precision: 0 }
+                    },
+                    y: {
+                        title: { display: true, text: 'Rating ELO' },
+                        suggestedMin: 900, // Para que el gráfico no empiece siempre desde 0
+                        suggestedMax: 1100
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => `Después del Partido #${items[0].parsed.x}`
+                        }
+                    }
+                }
+            }
+        });
     }
 
-    function borrarTodo() { if (confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); } }
+    function borrarTodo() { if (confirm("⚠️ ¡ATENCIÓN! ⚠️\n\nEsto borrará PERMANENTEMENTE todos los jugadores, partidos y el historial de ELO.\n\n¿Estás seguro?")) { localStorage.clear(); location.reload(); } }
 
     renderJugadores();
-    actualizarInterfaz();
+    // Pequeño timeout para asegurar que chart.js cargó antes del primer render
+    setTimeout(actualizarInterfaz, 100);
 </script>
-<!-- end list -->
 </body>
 </html>
